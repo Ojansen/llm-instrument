@@ -22,5 +22,5 @@ ollama_model = OpenAIModel(
 )
 agent = Agent(
     ollama_model,
-    system_prompt="Only answer with the name of the movie"
+    system_prompt=""
 )

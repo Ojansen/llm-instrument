@@ -21,13 +21,24 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-os.environ['OTEL_EXPORTER_OTLP_ENDPOINT'] = 'http://otel-tui:4318'
+otel_exp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+if not otel_exp_endpoint:
+    print("OTEL_EXPORTER_OTLP_ENDPOINT not set")
+
+
+os.environ['OTEL_EXPORTER_OTLP_ENDPOINT'] = otel_exp_endpoint
 logfire.configure(send_to_logfire=False)
 logfire.instrument_fastapi(app)
+logfire.instrument_pydantic_ai()
 
 
-@app.get("/hello")
-def hello(query: str):
-    # report = dataset.evaluate_sync(guess_city)
+@app.get("/inference")
+def inference(query: str):
     result_sync = agent.run_sync(query)
-    return {"message": result_sync.output}
+    print(result_sync)
+    return {"output": result_sync.output}
+
+
+@app.get("/similarity")
+def similarity(query: str):
+    result_sync = agent.run_sync(query)
