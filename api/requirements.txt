@@ -1,4 +1,5 @@
 fastapi[standard]
 logfire[fastapi]
+pydantic-evals[logfire]
 pydantic_ai
 pydantic
