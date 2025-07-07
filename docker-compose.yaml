@@ -1,0 +1,13 @@
+services:
+  api:
+    image: fastapilogfire
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    networks:
+      - internal
+
+networks:
+  internal: {}
