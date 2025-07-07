@@ -1,15 +1,14 @@
 import { useRuntimeConfig } from '#imports'
 
-export async function useInference(prompt: string): Promise<string> {
+export async function useSimilarity(prompt: string, reference: string): Promise<{ score: string, passing: string }> {
   const base_url = useRuntimeConfig().llmInstruments.baseUrl
 
-  const resp: { output: string } = await $fetch('/inference', {
+  return await $fetch('/similarity', {
     baseURL: base_url,
     immediate: false,
     query: {
       prompt: prompt,
+      reference: reference,
     },
   })
-
-  return resp.output
 }
