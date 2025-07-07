@@ -3,6 +3,9 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.evals import dataset, guess_city
+from app.agent import agent
+
 app = FastAPI()
 
 origins = [
@@ -24,5 +27,7 @@ logfire.instrument_fastapi(app)
 
 
 @app.get("/hello")
-async def hello(name: str):
-    return {"message": f"hello {name}"}
+def hello(query: str):
+    # report = dataset.evaluate_sync(guess_city)
+    result_sync = agent.run_sync(query)
+    return {"message": result_sync.output}

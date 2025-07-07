@@ -3,3 +3,4 @@ logfire[fastapi]
 pydantic-evals[logfire]
 pydantic_ai
 pydantic
+nest_asyncio

@@ -7,9 +7,12 @@ services:
     ports:
       - "80:80"
     volumes:
-      - ./app:/app
+      - ./api/app:/code/app
+    command: fastapi run app/main.py --host 0.0.0.0 --port 80 --reload
     networks:
       - internal
+    env_file:
+      - api/app/.env
 
 networks:
   internal: {}

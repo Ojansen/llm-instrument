@@ -1,15 +1,21 @@
 <template>
   <div>
-    <button @click="hello">Hello</button>
+      <input v-model="query">
+      <button @click="hello">Hello</button>
+      {{resp}}
+
   </div>
 </template>
 
 <script setup lang="ts">
-
+const resp = ref('');
+const query = ref('');
 
 async function hello() {
-  const {data} = await useFetch('/hello?name=test', {
+  const url = `/hello?query=${query.value}`;
+  const {data} = await useFetch(url, {
     baseURL: 'http://localhost',
   });
+  resp.value = data.value.message;
 }
 </script>
