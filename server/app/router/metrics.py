@@ -17,6 +17,6 @@ class Metrics:
         result = evaluator.evaluate(response=result_sync, reference=reference)
 
         with logfire.span("Cosine Similarity"):
-            logfire.span(result.feedback)
+            logfire.info(result.feedback)
 
         return {"score": result.score, "passing": result.passing, "output": result_sync}

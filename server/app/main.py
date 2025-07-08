@@ -48,8 +48,6 @@ def inference(prompt: str):
 def similarity(prompt: str, reference: str):
     metrics = Metrics(agent=agent)
     result = metrics.cosine_similarity(prompt=prompt, reference=reference)
-    with logfire.span("Cosine Similarity"):
-        logfire.span(result.feedback)
 
     return result
 
