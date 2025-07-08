@@ -12,6 +12,6 @@
 
 <script setup>
 function get() {
-  const {} = $fetch('/api/generate')
+  $fetch('/api/generate')
 }
 </script>

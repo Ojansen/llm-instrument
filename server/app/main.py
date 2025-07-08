@@ -7,7 +7,7 @@ import gradio as gr
 
 from app.router.metrics import Metrics
 from app.llm.lmstudio import LmStudio
-from app.router.inference import Inference
+from app.utils.interface import Interface
 
 app = FastAPI()
 
@@ -35,22 +35,24 @@ logfire.instrument_fastapi(app)
 logfire.instrument_pydantic_ai()
 
 llm = LmStudio(system_prompt="")
-agent = llm.agent()
+metrics = Metrics(llm=llm)
 
 
 @app.get("/inference")
 def inference(prompt: str):
-    output = Inference(agent=agent).run(prompt)
+    output = llm.inference(prompt)
     return {"output": output}
 
 
 @app.get("/similarity")
 def similarity(prompt: str, reference: str):
-    metrics = Metrics(agent=agent)
-    result = metrics.cosine_similarity(prompt=prompt, reference=reference)
-
-    return result
+    return metrics.cosine_similarity(prompt=prompt, reference=reference)
 
 
-io = gr.Interface(lambda x: "Hello, " + x + "!", "textbox", "textbox")
-app = gr.mount_gradio_app(app, io, path="/ui")
+@app.get("/correctness")
+def correctness(prompt: str, reference: str):
+    return metrics.correctness(prompt=prompt, reference=reference)
+
+
+interface = Interface()
+app = gr.mount_gradio_app(app, interface.render(), path="/ui")

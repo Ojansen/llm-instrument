@@ -7,3 +7,5 @@ gradio>=5.35.0
 nest_asyncio
 llama-index>=0.12.47
 llama-index-embeddings-huggingface>=0.5.5
+llama-index-core
+llama-index-llms-lmstudio
