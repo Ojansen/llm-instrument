@@ -1,8 +1,9 @@
-fastapi[standard]
-logfire[fastapi]
+fastapi[standard]>=0.115.14
+logfire[fastapi]>=3.22.1
 pydantic-evals[logfire]
 pydantic_ai
 pydantic
+gradio>=5.35.0
 nest_asyncio
-llama-index
-llama-index-embeddings-huggingface
+llama-index>=0.12.47
+llama-index-embeddings-huggingface>=0.5.5

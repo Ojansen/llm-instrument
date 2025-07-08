@@ -9,8 +9,6 @@ services:
     volumes:
       - ./api/app:/code/app
     command: fastapi run app/main.py --host 0.0.0.0 --port 80 --reload
-    networks:
-      - internal
     env_file:
       - api/app/.env
 
@@ -25,16 +23,13 @@ services:
     image: ymtdzzz/otel-tui:latest
     container_name: otel-tui
     ports:
-      - "4318:4318"  # OTLP receiver
+      - "4318:4318"
     tty: true
-    stdin_open: true  # Optional: allows interactive input if needed
+    stdin_open: true
     restart: unless-stopped
     depends_on:
       - fastapi
-    # Optional: auto-run otel-tui with custom UI or refresh rate
     command: [ "/otel-tui" ]
 
-networks:
-  internal: {}
 volumes:
   qdrant_data:

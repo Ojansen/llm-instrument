@@ -3,7 +3,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from llama_index.core.evaluation import SemanticSimilarityEvaluator
-from logging import basicConfig, getLogger
+import gradio as gr
 
 from app.evals import dataset, guess_city
 from app.agent import agent
@@ -52,3 +52,7 @@ def similarity(prompt: str, reference: str):
         logfire.span(result.feedback)
 
     return {"score": result.score, "passing": result.passing, "output": result_sync.output}
+
+
+io = gr.Interface(lambda x: "Hello, " + x + "!", "textbox", "textbox")
+app = gr.mount_gradio_app(app, io, path="/ui")
