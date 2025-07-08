@@ -2,15 +2,15 @@ services:
   fastapi:
     image: fastapilogfire
     build:
-      context: ./api
+      context: server
       dockerfile: Dockerfile
     ports:
       - "80:80"
     volumes:
-      - ./api/app:/code/app
+      - ./server/app:/code/app
     command: fastapi run app/main.py --host 0.0.0.0 --port 80 --reload
     env_file:
-      - api/app/.env
+      - server/app/.env
 
   qdrant:
     image: qdrant/qdrant:latest

@@ -5,8 +5,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from llama_index.core.evaluation import SemanticSimilarityEvaluator
 import gradio as gr
 
-from app.evals import dataset, guess_city
-from app.agent import agent
+from app.router.metrics import Metrics
+from app.llm.lmstudio import LmStudio
+from app.router.inference import Inference
 
 app = FastAPI()
 
@@ -28,30 +29,32 @@ if not otel_exp_endpoint:
     print("OTEL_EXPORTER_OTLP_ENDPOINT not set")
 
 
-os.environ['OTEL_EXPORTER_OTLP_ENDPOINT'] = otel_exp_endpoint
+os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = otel_exp_endpoint
 logfire.configure(send_to_logfire=False)
 logfire.instrument_fastapi(app)
 logfire.instrument_pydantic_ai()
 
+llm = LmStudio(system_prompt="")
+agent = llm.agent()
+
 
 @app.get("/inference")
 def inference(prompt: str):
-    result_sync = agent.run_sync(prompt)
-    return {"output": result_sync.output}
+    output = Inference(agent=agent).run(prompt)
+    return {"output": output}
 
 
 @app.get("/similarity")
 def similarity(prompt: str, reference: str):
-    evaluator = SemanticSimilarityEvaluator()
-    result_sync = agent.run_sync(prompt)
-    result = evaluator.evaluate(
-        response=result_sync.output,
-        reference=reference
-    )
-    with logfire.span('Cosine Similarity'):
-        logfire.span(result.feedback)
+    metrics = Metrics
+    result = metrics.cosine_similarity(prompt=prompt, reference=reference)
+    # evaluator = SemanticSimilarityEvaluator()
+    # result_sync = agent.run_sync(prompt)
+    # result = evaluator.evaluate(response=result_sync.output, reference=reference)
+    # with logfire.span("Cosine Similarity"):
+    #     logfire.span(result.feedback)
 
-    return {"score": result.score, "passing": result.passing, "output": result_sync.output}
+    return result
 
 
 io = gr.Interface(lambda x: "Hello, " + x + "!", "textbox", "textbox")
