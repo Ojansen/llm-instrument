@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, Any
 import logfire
 
 from llama_index.core.evaluation import SemanticSimilarityEvaluator
@@ -11,11 +11,11 @@ class Metrics:
     def __init__(self, agent: Agent):
         self.agent = agent
 
-    def cosine_similarity(self, prompt: str, reference: str) -> Dict[str, str]:
+    def cosine_similarity(self, prompt: str, reference: str):
         evaluator = SemanticSimilarityEvaluator()
         result_sync = Inference(agent=self.agent).run(prompt=prompt)
-
         result = evaluator.evaluate(response=result_sync, reference=reference)
+
         with logfire.span("Cosine Similarity"):
             logfire.span(result.feedback)
 

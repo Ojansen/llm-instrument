@@ -46,13 +46,10 @@ def inference(prompt: str):
 
 @app.get("/similarity")
 def similarity(prompt: str, reference: str):
-    metrics = Metrics
+    metrics = Metrics(agent=agent)
     result = metrics.cosine_similarity(prompt=prompt, reference=reference)
-    # evaluator = SemanticSimilarityEvaluator()
-    # result_sync = agent.run_sync(prompt)
-    # result = evaluator.evaluate(response=result_sync.output, reference=reference)
-    # with logfire.span("Cosine Similarity"):
-    #     logfire.span(result.feedback)
+    with logfire.span("Cosine Similarity"):
+        logfire.span(result.feedback)
 
     return result
 
