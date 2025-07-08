@@ -1,5 +1,5 @@
 services:
-  api:
+  fastapi:
     image: fastapilogfire
     build:
       context: ./api
@@ -14,5 +14,27 @@ services:
     env_file:
       - api/app/.env
 
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+  otel-tui:
+    image: ymtdzzz/otel-tui:latest
+    container_name: otel-tui
+    ports:
+      - "4318:4318"  # OTLP receiver
+    tty: true
+    stdin_open: true  # Optional: allows interactive input if needed
+    restart: unless-stopped
+    depends_on:
+      - fastapi
+    # Optional: auto-run otel-tui with custom UI or refresh rate
+    command: [ "/otel-tui" ]
+
 networks:
   internal: {}
+volumes:
+  qdrant_data:

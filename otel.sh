@@ -1,1 +1,0 @@
-docker run --rm -it --network llm-instrument_internal -p 4318:4318 --name otel-tui ymtdzzz/otel-tui:latest
