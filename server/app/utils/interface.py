@@ -36,10 +36,14 @@ class Interface:
     def _vector_store_interface(self):
         vs = VectorStore(llm=self._llm, collection_name="test_vectors")
         with gr.Blocks() as block:
+            gr.Markdown("# Vector store settings")
+            with gr.Row():
+                gr.Textbox("test_vectors", label="Collection name", interactive=False)
+                gr.Button("Clear Vector Store").click(fn=vs.index().clear)
             with gr.Column():
                 gr.Interface(
                     fn=vs.upload_and_index,
-                    inputs=gr.File(label="Upload a text file"),
+                    inputs=gr.Files(label="Upload one or more text files"),
                     outputs="text",
                     title="Upload & Index File to Qdrant",
                 )

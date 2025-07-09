@@ -1,5 +1,6 @@
 import uuid
 
+import logfire
 from llama_index.core import VectorStoreIndex, StorageContext
 from llama_index.core.vector_stores import VectorStoreQuery
 from llama_index.vector_stores.qdrant import QdrantVectorStore
@@ -51,39 +52,58 @@ class VectorStore:
                 ),
             )
 
-    def upload_and_index(self, file):
+    def upload_and_index(self, files):
         self.find_or_create_collection()
         # file.name is the path to the uploaded file
         try:
-            with open(file.name, "r", encoding="utf-8") as f:
-                text = f.read()
-            embedding = self._llm.embed(text)
-            # Store in Qdrant (same as before)
-            self._client.upsert(
-                collection_name=self.collection_name,
-                points=[
-                    PointStruct(
-                        id=str(uuid.uuid4()),
-                        vector=embedding,
-                        payload={"filename": os.path.basename(file.name), "text": text},
-                    )
-                ],
-            )
-            return f"File '{os.path.basename(file.name)}' indexed in Qdrant."
+            for file in files:
+                with open(file.name, "r", encoding="utf-8") as f:
+                    text = f.read()
+                embedding = self._llm.embed(text)
+                # Store in Qdrant (same as before)
+                self._client.upsert(
+                    collection_name=self.collection_name,
+                    points=[
+                        PointStruct(
+                            id=str(uuid.uuid4()),
+                            vector=embedding,
+                            payload={
+                                "filename": os.path.basename(file.name),
+                                "text": text,
+                            },
+                        )
+                    ],
+                )
+                return f"File '{os.path.basename(file.name)}' indexed in Qdrant."
         except Exception as e:
             return f"Error: {e}"
         finally:
             # Clean up temp file Gradio creates
             try:
-                os.remove(file.name)
+                os.remove(files)
             except Exception:
                 pass
 
     def query(self, query):
-        return str(
-            self.index().query(
-                VectorStoreQuery(
-                    query_embedding=self._llm.embed(query),
-                )
+        nodes = self.index().query(
+            VectorStoreQuery(
+                similarity_top_k=5,
+                query_embedding=self._llm.embed(query),
             )
         )
+
+        with logfire.span("Retrived nodes"):
+            logfire.info(
+                "documents",
+                similarities=nodes.similarities,
+                ids=nodes.ids,
+                filenames=[node.metadata for node in nodes.nodes],
+            )
+
+        context = "\n\n".join([node.text for node in nodes.nodes])
+        # Step 3: Create prompt
+        prompt = f"Context:\n{context}\n\nQuestion: {query}\nAnswer:"
+        # Step 4: Query the LLM
+        response = self._llm.inference(prompt)
+
+        return response
