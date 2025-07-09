@@ -2,12 +2,13 @@ import gradio as gr
 
 from app.llm.lmstudio import LmStudio
 from app.router.metrics import Metrics
+from app.types import AgentInterface
 from app.utils.vector_store import VectorStore
 
 
 class Interface:
-    def __init__(self):
-        self._llm = LmStudio(system_prompt="")
+    def __init__(self, llm: AgentInterface):
+        self._llm = llm
         self._metrics = Metrics(llm=self._llm)
 
     def render(self):
@@ -31,6 +32,13 @@ class Interface:
                     outputs=["text"],
                     title="Similarity",
                 )
+
+                gr.Interface(
+                    fn=self._metrics.faithfulness,
+                    inputs=["text"],
+                    outputs=["text"],
+                    title="Faithfulness",
+                )
         return block
 
     def _vector_store_interface(self):
@@ -48,10 +56,10 @@ class Interface:
                     title="Upload & Index File to Qdrant",
                 )
                 gr.Interface(
-                    fn=vs.query,
+                    fn=vs.llm_query,
                     inputs=["text"],
                     outputs=["text"],
-                    title="Query Vectors",
+                    title="Query vector store with LLM response",
                 )
 
         return block

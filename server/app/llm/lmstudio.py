@@ -1,6 +1,5 @@
 import os
 
-from llama_index.embeddings.ollama import OllamaEmbedding
 from llama_index.embeddings.openai_like import OpenAILikeEmbedding
 from pydantic_ai import Agent
 from pydantic_ai.models.openai import OpenAIModel

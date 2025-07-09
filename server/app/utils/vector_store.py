@@ -1,20 +1,21 @@
 import uuid
+import os
 
 import logfire
-from llama_index.core import VectorStoreIndex, StorageContext
+import qdrant_client
+from llama_index.core.node_parser import SentenceSplitter
 from llama_index.core.vector_stores import VectorStoreQuery
 from llama_index.vector_stores.qdrant import QdrantVectorStore
 from llama_index.readers.qdrant import QdrantReader
-import qdrant_client
-import os
 from qdrant_client.models import PointStruct, VectorParams
 
-from app.router.metrics import AgentInterface
+from app.types import AgentInterface
 
 
 class VectorStore:
     def __init__(self, llm: AgentInterface, collection_name="test_vectors"):
-        self.embedding_size = 1024
+        self._embedding_size = 1024
+        self._chunk_size = 400
         self.collection_name = collection_name
         self._llm = llm
         self._client = qdrant_client.QdrantClient(
@@ -48,33 +49,42 @@ class VectorStore:
             self._client.create_collection(
                 collection_name=self.collection_name,
                 vectors_config=VectorParams(
-                    size=self.embedding_size, distance="Cosine"
+                    size=self._embedding_size, distance="Cosine"
                 ),
             )
 
     def upload_and_index(self, files):
+        splitter = SentenceSplitter(chunk_size=self._chunk_size)  # Or higher, as needed
+
         self.find_or_create_collection()
         # file.name is the path to the uploaded file
         try:
             for file in files:
                 with open(file.name, "r", encoding="utf-8") as f:
                     text = f.read()
-                embedding = self._llm.embed(text)
-                # Store in Qdrant (same as before)
-                self._client.upsert(
-                    collection_name=self.collection_name,
-                    points=[
-                        PointStruct(
-                            id=str(uuid.uuid4()),
-                            vector=embedding,
-                            payload={
-                                "filename": os.path.basename(file.name),
-                                "text": text,
-                            },
-                        )
-                    ],
-                )
-                return f"File '{os.path.basename(file.name)}' indexed in Qdrant."
+                chunks = splitter.split_text(text)
+                print(chunks)
+                for i, chunk in enumerate(chunks):
+                    if not chunk.strip():
+                        continue
+                    embedding = self._llm.embed(chunk)
+
+                    # Store in Qdrant (same as before)
+                    self._client.upsert(
+                        collection_name=self.collection_name,
+                        points=[
+                            PointStruct(
+                                id=str(uuid.uuid4()),
+                                vector=embedding,
+                                payload={
+                                    "filename": os.path.basename(file.name),
+                                    "chunk_index": i,
+                                    "text": chunk,
+                                },
+                            )
+                        ],
+                    )
+            return f"File '{os.path.basename(file.name)}' indexed in Qdrant."
         except Exception as e:
             return f"Error: {e}"
         finally:
@@ -85,14 +95,17 @@ class VectorStore:
                 pass
 
     def query(self, query):
-        nodes = self.index().query(
+        return self.index().query(
             VectorStoreQuery(
                 similarity_top_k=5,
                 query_embedding=self._llm.embed(query),
             )
         )
 
-        with logfire.span("Retrived nodes"):
+    def llm_query(self, query):
+        nodes = self.query(query)
+
+        with logfire.span("Retrieved nodes"):
             logfire.info(
                 "documents",
                 similarities=nodes.similarities,

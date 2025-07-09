@@ -1,10 +1,12 @@
+from typing import Protocol, Union
+
 import logfire
 import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from llama_index.core.evaluation import SemanticSimilarityEvaluator
 import gradio as gr
 
+from app.llm.llama import Llama
 from app.router.metrics import Metrics
 from app.llm.lmstudio import LmStudio
 from app.utils.interface import Interface
@@ -34,7 +36,7 @@ logfire.configure(send_to_logfire=False)
 logfire.instrument_fastapi(app)
 logfire.instrument_pydantic_ai()
 
-llm = LmStudio(system_prompt="")
+llm = Llama(system_prompt="")
 metrics = Metrics(llm=llm)
 
 
@@ -54,5 +56,10 @@ def correctness(prompt: str, reference: str):
     return metrics.correctness(prompt=prompt, reference=reference)
 
 
-interface = Interface()
+@app.get("/faithfulness")
+def faithfulness(prompt: str):
+    return metrics.faithfulness(prompt=prompt)
+
+
+interface = Interface(llm=llm)
 app = gr.mount_gradio_app(app, interface.render(), path="/ui")

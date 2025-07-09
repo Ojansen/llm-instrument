@@ -1,4 +1,4 @@
-from llama_index.legacy.embeddings import OllamaEmbedding
+from llama_index.embeddings.openai_like import OpenAILikeEmbedding
 from llama_index.llms.lmstudio import LMStudio
 import os
 
@@ -26,10 +26,8 @@ class Llama:
         return str(response)
 
     def embed(self, text: str):
-        # self.llm.embed
-        embed_model = OllamaEmbedding(
+        embed_model = OpenAILikeEmbedding(
             model_name=self.embedding_model,
-            base_url=self.llm_base_url,
-            ollama_additional_kwargs={"mirostat": 0},
+            api_base=self.llm_base_url,
         )
         return embed_model.get_text_embedding(text)

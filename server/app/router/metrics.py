@@ -4,24 +4,17 @@ import logfire
 from llama_index.core.evaluation import (
     SemanticSimilarityEvaluator,
     CorrectnessEvaluator,
+    FaithfulnessEvaluator,
 )
-from llama_index.core.llms import CustomLLM
-from pydantic_ai import Agent
 
-
-class AgentInterface(Protocol):
-    agent: Union[Agent, CustomLLM]
-
-    def inference(self, prompt: str) -> str:
-        pass
-
-    def embed(self, text: str) -> list[float]:
-        pass
+from app.types import AgentInterface
+from app.utils.vector_store import VectorStore
 
 
 class Metrics:
     def __init__(self, llm: AgentInterface):
         self._llm = llm
+        self._vector_store = VectorStore(llm)
 
     def cosine_similarity(self, prompt: str, reference: str):
         evaluator = SemanticSimilarityEvaluator()
@@ -42,7 +35,7 @@ class Metrics:
         return result
 
     def correctness(self, prompt: str, reference: str):
-        evaluator = CorrectnessEvaluator()
+        evaluator = CorrectnessEvaluator(llm=self._llm.agent)
         prompt_output = self._llm.inference(prompt=prompt)
         result = evaluator.evaluate(
             query=prompt,
@@ -58,5 +51,24 @@ class Metrics:
                     "reference": reference,
                     "feedback": result.feedback,
                 },
+            )
+        return result
+
+    def faithfulness(self, prompt: str):
+        evaluator = FaithfulnessEvaluator(llm=self._llm.agent)
+        response_vector = self._vector_store.query(prompt)
+        response = self._vector_store.llm_query(prompt)
+        result = evaluator.evaluate(
+            response=response, contexts=[node.text for node in response_vector.nodes]
+        )
+        with logfire.span("Faithfulness"):
+            logfire.info(
+                "result",
+                passing=result.passing,
+                score=result.score,
+                feedback=result.feedback,
+                prompt=prompt,
+                response=response,
+                source=result.contexts[:1000],
             )
         return result
