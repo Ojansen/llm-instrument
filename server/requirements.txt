@@ -6,6 +6,12 @@ pydantic
 gradio>=5.35.0
 nest_asyncio
 llama-index>=0.12.47
-llama-index-embeddings-huggingface>=0.5.5
-llama-index-core
+llama-index-core>=0.12.47
+llama-index-readers-file
+llama-index-readers-qdrant
+llama-index-embeddings-ollama
+llama-index-embeddings-openai
+llama-index-vector-stores-qdrant
 llama-index-llms-lmstudio
+llama-index-llms-openai
+llama-index-embeddings-openai-like

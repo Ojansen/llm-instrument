@@ -15,6 +15,9 @@ class AgentInterface(Protocol):
     def inference(self, prompt: str) -> str:
         pass
 
+    def embed(self, text: str) -> list[float]:
+        pass
+
 
 class Metrics:
     def __init__(self, llm: AgentInterface):
@@ -22,13 +25,21 @@ class Metrics:
 
     def cosine_similarity(self, prompt: str, reference: str):
         evaluator = SemanticSimilarityEvaluator()
-        result_sync = self._llm.inference(prompt=prompt)
-        result = evaluator.evaluate(response=result_sync, reference=reference)
+        prompt_output = self._llm.inference(prompt=prompt)
+        result = evaluator.evaluate(response=prompt_output, reference=reference)
 
         with logfire.span("Cosine Similarity"):
-            logfire.info(result.feedback)
+            logfire.info(
+                "result",
+                attributes={
+                    "prompt": prompt,
+                    "response": prompt_output,
+                    "reference": reference,
+                    "feedback": result.feedback,
+                },
+            )
 
-        return {"score": result.score, "passing": result.passing, "output": result_sync}
+        return result
 
     def correctness(self, prompt: str, reference: str):
         evaluator = CorrectnessEvaluator()
@@ -38,5 +49,14 @@ class Metrics:
             response=prompt_output,
             reference=reference,
         )
-        print(result.feedback)
-        return {"score": result.score, "passing": result.passing}
+        with logfire.span("Correctness"):
+            logfire.info(
+                "result",
+                attributes={
+                    "prompt": prompt,
+                    "response": prompt_output,
+                    "reference": reference,
+                    "feedback": result.feedback,
+                },
+            )
+        return result
