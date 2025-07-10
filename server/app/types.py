@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import Protocol, Union
 
 from llama_index.core.llms import CustomLLM
@@ -12,3 +13,9 @@ class AgentInterface(Protocol):
 
     def embed(self, text: str) -> list[float]:
         pass
+
+
+class MetricType(str, Enum):
+    similarity = "similarity"
+    correctness = "correctness"
+    faithfulness = "faithfulness"

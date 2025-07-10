@@ -1,5 +1,3 @@
-from typing import Protocol, Union
-
 import logfire
 import os
 from fastapi import FastAPI
@@ -8,7 +6,7 @@ import gradio as gr
 
 from app.llm.llama import Llama
 from app.router.metrics import Metrics
-from app.llm.lmstudio import LmStudio
+from app.types import MetricType
 from app.utils.interface import Interface
 
 app = FastAPI()
@@ -33,11 +31,13 @@ if not otel_exp_endpoint:
 
 os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = otel_exp_endpoint
 logfire.configure(send_to_logfire=False)
-logfire.instrument_fastapi(app)
+logfire.instrument_fastapi(app, excluded_urls=["/ui", "/manifest.json"])
 logfire.instrument_pydantic_ai()
+logfire.instrument_openai()
 
-llm = Llama(system_prompt="")
-metrics = Metrics(llm=llm)
+llm = Llama(
+    system_prompt="You are a helpful assistant and should answer the following questions:"
+)
 
 
 @app.get("/inference")
@@ -46,19 +46,20 @@ def inference(prompt: str):
     return {"output": output}
 
 
-@app.get("/similarity")
-def similarity(prompt: str, reference: str):
-    return metrics.cosine_similarity(prompt=prompt, reference=reference)
+@app.get("/metrics/{metric_type}")
+def metrics(metric_type: MetricType, prompt: str, reference=""):
+    metrics_instance = Metrics(llm=llm)
 
+    if metric_type == MetricType.similarity:
+        return metrics_instance.cosine_similarity(prompt=prompt, reference=reference)
 
-@app.get("/correctness")
-def correctness(prompt: str, reference: str):
-    return metrics.correctness(prompt=prompt, reference=reference)
+    if metric_type == MetricType.correctness:
+        return metrics_instance.correctness(prompt=prompt, reference=reference)
 
+    if metric_type == MetricType.faithfulness:
+        return metrics_instance.faithfulness(prompt=prompt)
 
-@app.get("/faithfulness")
-def faithfulness(prompt: str):
-    return metrics.faithfulness(prompt=prompt)
+    return "Invalid metric type"
 
 
 interface = Interface(llm=llm)
