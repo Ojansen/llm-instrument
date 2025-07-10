@@ -19,6 +19,7 @@ class Llama:
             model_name=self.model_name,
             base_url=self.llm_base_url,
             temperature=self.temperature,
+            request_timeout=120.0,
         )
 
     def inference(self, prompt: str) -> str:

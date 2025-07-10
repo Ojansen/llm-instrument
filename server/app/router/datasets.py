@@ -43,8 +43,8 @@ class Datasets:
             offset = response[1]
 
         # return f"Loaded {len(all_docs)} documents from Qdrant."
-        generator = RagDatasetGenerator(
-            all_docs,
+        generator = RagDatasetGenerator.from_documents(
+            documents=all_docs,
             llm=self._llm.agent,
             num_questions_per_chunk=num_questions_per_chunk,
             show_progress=True,

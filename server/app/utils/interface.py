@@ -73,14 +73,14 @@ class Interface:
 
     def _dataset_interface(self):
         with gr.Blocks() as block:
-            with gr.Row():
-                limit = gr.Number(label="Limit", value=1, precision=0)
-                num_questions = gr.Number(
-                    label="Num Questions per Chunk", value=1, precision=0
-                )
+            # with gr.Row():
+            #     limit = gr.Number(label="Limit", value=1, precision=0)
+            #     num_questions = gr.Number(
+            #         label="Num Questions per Chunk", value=1, precision=0
+            #     )
             gr.Button(value="Create questions").click(
                 fn=self._datasets.generator,
-                inputs=[limit, num_questions],
+                # inputs=[limit, num_questions],
                 outputs=gr.Dataframe(label="RAG Dataset"),
             )
 
