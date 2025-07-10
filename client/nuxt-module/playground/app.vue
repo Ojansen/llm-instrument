@@ -1,17 +1,21 @@
 <template>
   <div>
-    Nuxt module playground!
+    <h1>LLM Instruments</h1>
     <button
       type="button"
       @click="get"
     >
       Submit
     </button>
+    <pre>
+      {{ response }}
+    </pre>
   </div>
 </template>
 
 <script setup>
-function get() {
-  $fetch('/api/generate')
+const response = ref('')
+async function get() {
+  response.value = await $fetch('/api/generate')
 }
 </script>

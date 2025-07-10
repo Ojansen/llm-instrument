@@ -1,9 +1,15 @@
-import { useInference } from '../../../src/runtime/composables/useInference'
-import { useSimilarity } from '../../../src/runtime/composables/useSimilarity'
-import { useCorrectness } from '../../../src/runtime/composables/useCorrectness';
+import { useMetrics } from '../../../src/runtime/composables/useMetrics'
 
-export default defineEventHandler(() => {
-  // return useInference('the sky is ...')
-  // return useSimilarity('the sky is ...', 'blue')
-  return useCorrectness('the sky is ...', 'blue')
+export default defineEventHandler(async () => {
+  const { faithfulness, correctness, similarity } = useMetrics()
+  const prompt = 'the color of the sky is ...'
+  const reference = 'blue'
+
+  const sim = await similarity(prompt, reference)
+  const corr = await correctness(prompt, reference)
+  const faith = await faithfulness(prompt)
+
+  return {
+    sim, corr, faith,
+  }
 })
