@@ -1,5 +1,6 @@
 import gradio as gr
 
+from app.database.db import Database
 from app.router.datasets import Datasets
 from app.router.metrics import Metrics
 from app.types import AgentInterface
@@ -12,6 +13,7 @@ class Interface:
         self._metrics = Metrics(llm=self._llm)
         self._vector_store = VectorStore(llm=self._llm)
         self._datasets = Datasets(llm=self._llm)
+        self._database = Database()
 
     def render(self):
         return gr.TabbedInterface(
@@ -19,28 +21,39 @@ class Interface:
                 self._metric_interface(),
                 self._vector_store_interface(),
                 self._dataset_interface(),
+                self._database_interface(),
             ],
-            tab_names=["Metrics", "Vector store", "Dataset"],
+            tab_names=["Metrics", "Vector store", "Dataset", "Database"],
         )
 
     def _metric_interface(self):
+        def cosine_similarity(*args, **kwargs):
+            return self._metrics.cosine_similarity(*args, **kwargs).feedback
+
+        def correctness(*args, **kwargs):
+            result = self._metrics.correctness(*args, **kwargs)
+            return f"Score {result.score} \nDid pass: {result.passing} \nFeedback: {result.feedback}"
+
+        def faithfulness(*args, **kwargs):
+            result = self._metrics.faithfulness(*args, **kwargs)
+            return f"Faithfulness/ Hallucinations \nScore: {result.score} \nDid pass: {result.passing} \nFeedback: {result.feedback}"
+
         with gr.Blocks() as block:
             with gr.Column():
                 gr.Interface(
-                    fn=self._metrics.correctness,
+                    fn=cosine_similarity,
+                    inputs=["text", "text"],
+                    outputs=["text"],
+                    title="Similarity",
+                )
+                gr.Interface(
+                    fn=correctness,
                     inputs=["text", "text"],
                     outputs=["text"],
                     title="Correctness",
                 )
                 gr.Interface(
-                    fn=self._metrics.cosine_similarity,
-                    inputs=["text", "text"],
-                    outputs=["text"],
-                    title="Similarity",
-                )
-
-                gr.Interface(
-                    fn=self._metrics.faithfulness,
+                    fn=faithfulness,
                     inputs=["text"],
                     outputs=["text"],
                     title="Faithfulness",
@@ -83,5 +96,33 @@ class Interface:
                 # inputs=[limit, num_questions],
                 outputs=gr.Dataframe(label="RAG Dataset"),
             )
+
+        return block
+
+    def _database_interface(self):
+        with gr.Blocks() as block:
+
+            textbox = gr.Textbox()
+            gr.Button("Create Tables").click(
+                fn=self._database.create_all, outputs=[textbox]
+            )
+            gr.Button("Drop all").click(fn=self._database.drop_all, outputs=[textbox])
+
+            gr.Interface(
+                fn=self._database.create_project, inputs=["text"], outputs=None
+            )
+
+            gr.Interface(
+                fn=self._database.create_new_session,
+                inputs=[
+                    gr.Dropdown(
+                        [project.id for project in self._database.all_projects()],
+                        label="Project name",
+                    )
+                ],
+                outputs=["text"],
+            )
+
+            # gr.Button(value="Update questions").click(fn=)
 
         return block

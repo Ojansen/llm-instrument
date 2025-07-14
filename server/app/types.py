@@ -1,12 +1,14 @@
 from enum import Enum
 from typing import Protocol, Union
 
+from llama_index.core.base.embeddings.base import BaseEmbedding
 from llama_index.core.llms import CustomLLM
 from pydantic_ai import Agent
 
 
 class AgentInterface(Protocol):
     agent: Union[Agent, CustomLLM]
+    embedding_model = BaseEmbedding | None
 
     def inference(self, prompt: str) -> str:
         pass

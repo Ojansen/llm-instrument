@@ -9,11 +9,12 @@ class Llama:
         self.temperature = temperature
 
         self.model_name = os.getenv("OLLAMA_MODEL") or "llama-3.2-3b-instruct"
-        self.embedding_model = (
-            os.getenv("OLLAMA_EMBEDDING_MODEL") or "text-embedding-bge-m3"
-        )
         self.llm_base_url = (
             os.getenv("OLLAMA_URL") or "http://host.docker.internal:1234/v1"
+        )
+        self.embedding_model = OpenAILikeEmbedding(
+            model_name=os.getenv("OLLAMA_EMBEDDING_MODEL") or "text-embedding-bge-m3",
+            api_base=self.llm_base_url,
         )
         self.agent = LMStudio(
             model_name=self.model_name,
@@ -22,13 +23,12 @@ class Llama:
             request_timeout=120.0,
         )
 
+    def __repr__(self):
+        return f"Llama({self.system_prompt}, {self.temperature})"
+
     def inference(self, prompt: str) -> str:
         response = self.agent.complete(prompt)
         return str(response)
 
     def embed(self, text: str):
-        embed_model = OpenAILikeEmbedding(
-            model_name=self.embedding_model,
-            api_base=self.llm_base_url,
-        )
-        return embed_model.get_text_embedding(text)
+        return self.embedding_model.get_text_embedding(text)

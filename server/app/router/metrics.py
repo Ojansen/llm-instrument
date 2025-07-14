@@ -16,10 +16,16 @@ class Metrics:
         self._llm = llm
         self._vector_store = VectorStore(llm)
 
+    def __repr__(self):
+        return f"Metrics({self._llm}, {self._vector_store})"
+
+    @logfire.instrument
     def cosine_similarity(self, prompt: str, reference: str):
-        evaluator = SemanticSimilarityEvaluator()
+        evaluator = SemanticSimilarityEvaluator(embed_model=self._llm.embedding_model)
         prompt_output = self._llm.inference(prompt=prompt)
-        result = evaluator.evaluate(response=prompt_output, reference=reference)
+        result = evaluator.evaluate(
+            query=prompt, response=prompt_output, reference=reference
+        )
 
         with logfire.span("Cosine Similarity"):
             logfire.info(
@@ -34,6 +40,7 @@ class Metrics:
 
         return result
 
+    @logfire.instrument
     def correctness(self, prompt: str, reference: str):
         evaluator = CorrectnessEvaluator(llm=self._llm.agent)
         prompt_output = self._llm.inference(prompt=prompt)
@@ -54,6 +61,7 @@ class Metrics:
             )
         return result
 
+    @logfire.instrument
     def faithfulness(self, prompt: str):
         evaluator = FaithfulnessEvaluator(llm=self._llm.agent)
         response_vector = self._vector_store.query(prompt)
