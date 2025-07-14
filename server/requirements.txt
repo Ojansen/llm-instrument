@@ -16,7 +16,8 @@ llama-index-vector-stores-qdrant
 llama-index-llms-lmstudio
 llama-index-llms-openai
 llama-index-embeddings-openai-like
+opentelemetry-instrumentation-llamaindex
 spacy
 sqlalchemy
 psycopg[binary,pool]
-opentelemetry-instrumentation-llamaindex
+ragchecker>=0.1.9

@@ -8,6 +8,8 @@ from pydantic_ai import Agent
 
 class AgentInterface(Protocol):
     agent: Union[Agent, CustomLLM]
+    model_name: str
+    llm_base_url: str
     embedding_model = BaseEmbedding | None
 
     def inference(self, prompt: str) -> str:

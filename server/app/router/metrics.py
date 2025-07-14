@@ -6,6 +6,10 @@ from llama_index.core.evaluation import (
     CorrectnessEvaluator,
     FaithfulnessEvaluator,
 )
+from llama_index.core.schema import BaseNode
+from ragchecker import RAGChecker, RAGResults
+from ragchecker.integrations.llama_index import response_to_rag_results
+from ragchecker.metrics import all_metrics
 
 from app.types import AgentInterface
 from app.utils.vector_store import VectorStore
@@ -80,3 +84,42 @@ class Metrics:
                 source=result.contexts[:1000],
             )
         return result
+
+    @logfire.instrument
+    def ragchecker(self, prompt: str, ground_truth: str):
+        evaluator = RAGChecker(
+            openai_api_key="lm-studio",
+            extractor_api_base=self._llm.llm_base_url,
+            checker_api_base=self._llm.llm_base_url,
+            extractor_name=f"openai/{self._llm.model_name}",
+            checker_name=f"openai/{self._llm.model_name}",
+        )
+        nodes = self._vector_store.query(prompt)
+        query_response = self._vector_store.llm_query(prompt)
+
+        wrapped = type("Response", (), {})()
+        wrapped.response = query_response
+        wrapped.source_nodes = [NodeWrapper(n) for n in nodes.nodes]
+
+        result = response_to_rag_results(
+            query=prompt,
+            gt_answer=ground_truth,
+            response_object=wrapped,
+        )
+        rag_results = RAGResults.from_dict({"results": [result]})
+
+        metrics = evaluator.evaluate(
+            rag_results,
+            all_metrics,
+        )
+        return metrics
+
+
+class NodeWrapper:
+    def __init__(self, node: BaseNode):
+        self.node = node
+        self.id_ = node.id_
+        self.node.text = node.get_content()
+
+    def __repr__(self):
+        return f"NodeWrapper({self.node})"

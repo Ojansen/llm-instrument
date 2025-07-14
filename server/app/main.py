@@ -2,6 +2,7 @@ import logfire
 import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from llama_index.core import Settings
 from opentelemetry.instrumentation.llamaindex import LlamaIndexInstrumentor
 import gradio as gr
 from sqlalchemy import create_engine
@@ -15,10 +16,9 @@ if not otel_exp_endpoint:
 
 
 os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = otel_exp_endpoint
-logfire.configure(send_to_logfire=False, service_name='LLM instruments')
+logfire.configure(send_to_logfire=False, service_name="LLM instruments")
 logfire.install_auto_tracing(modules=["/app"], min_duration=0.01)
 logfire.instrument_fastapi(app, excluded_urls=["/ui", "/manifest.json"])
-logfire.instrument_pydantic_ai()
 logfire.instrument_openai()
 logfire.instrument_sqlalchemy(
     engine=create_engine("postgresql+psycopg://postgres:postgres@db:5432")
@@ -71,5 +71,7 @@ def metrics(metric_type: MetricType, prompt: str, reference=""):
 llm = Llama(
     system_prompt="You are a helpful assistant and should answer the following questions:"
 )
+Settings.llm = llm.agent
+Settings.embed_model = llm.embedding_model
 interface = Interface(llm=llm)
 app = gr.mount_gradio_app(app, interface.render(), path="/ui")

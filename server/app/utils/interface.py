@@ -18,21 +18,38 @@ class Interface:
     def render(self):
         return gr.TabbedInterface(
             interface_list=[
+                self._dashboard(),
                 self._metric_interface(),
                 self._vector_store_interface(),
                 self._dataset_interface(),
                 self._database_interface(),
             ],
-            tab_names=["Metrics", "Vector store", "Dataset", "Database"],
+            tab_names=[
+                "Dashboard",
+                "Metrics",
+                "Vector store",
+                "Dataset",
+                "Database",
+            ],
         )
 
-    def _metric_interface(self):
-        def cosine_similarity(*args, **kwargs):
-            return self._metrics.cosine_similarity(*args, **kwargs).feedback
+    @staticmethod
+    def _dashboard():
+        with gr.Blocks() as block:
+            gr.Markdown(
+                "# Dashboard \n## Links \n* [otel](http://localhost:16686) \n* [Qdrant](http://localhost:6333/dashboard#/collections)"
+            )
+        return block
 
-        def correctness(*args, **kwargs):
+    def _metric_interface(self):
+        def similarity_and_correctness(*args, **kwargs):
+            sim_results = self._metrics.cosine_similarity(*args, **kwargs)
             result = self._metrics.correctness(*args, **kwargs)
-            return f"Score {result.score} \nDid pass: {result.passing} \nFeedback: {result.feedback}"
+            return f"{sim_results.feedback}  \n\nCorrectness \nScore {result.score} \nDid pass: {result.passing} \nFeedback: {result.feedback}"
+
+        def ragchecker(*args, **kwargs):
+            result = self._metrics.ragchecker(*args, **kwargs)
+            return result
 
         def faithfulness(*args, **kwargs):
             result = self._metrics.faithfulness(*args, **kwargs)
@@ -41,22 +58,29 @@ class Interface:
         with gr.Blocks() as block:
             with gr.Column():
                 gr.Interface(
-                    fn=cosine_similarity,
-                    inputs=["text", "text"],
+                    fn=similarity_and_correctness,
+                    inputs=[gr.Textbox(label="Prompt"), gr.Textbox(label="Context")],
                     outputs=["text"],
                     title="Similarity",
                 )
-                gr.Interface(
-                    fn=correctness,
-                    inputs=["text", "text"],
-                    outputs=["text"],
-                    title="Correctness",
-                )
+                gr.Markdown("# Vector store metrics")
                 gr.Interface(
                     fn=faithfulness,
                     inputs=["text"],
                     outputs=["text"],
                     title="Faithfulness",
+                    description="Evaluates whether a response is faithful to the contexts \n(i.e. whether the response is supported by the contexts or hallucinated.)",
+                )
+                gr.Interface(
+                    fn=ragchecker,
+                    inputs=[
+                        gr.Textbox(label="Prompt"),
+                        gr.Textbox(label="Ground truth"),
+                    ],
+                    outputs=[gr.JSON()],
+                    title="Rag checker",
+                    description="![image](https://raw.githubusercontent.com/amazon-science/RAGChecker/refs/heads/main/imgs/ragchecker_metrics.png)",
+                    article="[Package](https://github.com/amazon-science/RAGChecker)",
                 )
         return block
 
