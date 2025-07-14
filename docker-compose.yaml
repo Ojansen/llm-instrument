@@ -19,17 +19,30 @@ services:
     volumes:
       - qdrant_data:/qdrant/storage
 
-  otel-tui:
-    image: ymtdzzz/otel-tui:latest
-    container_name: otel-tui
+  otel:
+    image: jaegertracing/jaeger
     ports:
+      - "16686:16686"
+      - "4317:4317"
       - "4318:4318"
-    tty: true
-    stdin_open: true
-    restart: unless-stopped
-    depends_on:
-      - fastapi
-    command: [ "/otel-tui" ]
+    environment:
+      - LOG_LEVEL=debug
+
+# DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres
+  db:
+    image: postgres
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=llm_eval
+    ports:
+      - "5432"
+    volumes:
+      - database_data:/var/lib/postgresql/data
+
 
 volumes:
   qdrant_data:
+  database_data:
+    driver: local

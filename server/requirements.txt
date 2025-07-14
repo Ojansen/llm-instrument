@@ -1,5 +1,6 @@
 fastapi[standard]>=0.115.14
 logfire[fastapi]>=3.22.1
+logfire[sqlalchemy]
 pydantic-evals[logfire]
 pydantic_ai
 pydantic
@@ -16,3 +17,6 @@ llama-index-llms-lmstudio
 llama-index-llms-openai
 llama-index-embeddings-openai-like
 spacy
+sqlalchemy
+psycopg[binary,pool]
+opentelemetry-instrumentation-llamaindex
