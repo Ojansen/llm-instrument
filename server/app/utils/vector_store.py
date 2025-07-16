@@ -2,6 +2,7 @@ import uuid
 import os
 
 import logfire
+from llama_index.core import VectorStoreIndex, StorageContext
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.core.vector_stores import VectorStoreQuery
 from llama_index.vector_stores.qdrant import QdrantVectorStore
@@ -33,7 +34,19 @@ class VectorStore:
         )
         return documents
 
+    def vector_query_engine(self):
+        return VectorStoreIndex.from_vector_store(
+            vector_store=QdrantVectorStore(
+                client=self.client, collection_name=self.collection_name
+            )
+        ).as_query_engine()
+
     def index(self):
+        # return VectorStoreIndex.from_vector_store(
+        #     vector_store=QdrantVectorStore(
+        #         client=self.client, collection_name=self.collection_name
+        #     )
+        # )
         return QdrantVectorStore(
             client=self.client, collection_name=self.collection_name
         )
@@ -94,13 +107,9 @@ class VectorStore:
                 pass
 
     def query(self, query):
-        return self.index().query(
-            VectorStoreQuery(
-                similarity_top_k=5,
-                query_embedding=self._llm.embed(query),
-            )
-        )
+        return self.index().as_query_engine().query(query)
 
+    @logfire.instrument
     def llm_query(self, query):
         nodes = self.query(query)
 
