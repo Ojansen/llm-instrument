@@ -1,8 +1,6 @@
 fastapi[standard]>=0.115.14
 logfire[fastapi]>=3.22.1
 logfire[sqlalchemy]
-pydantic-evals[logfire]
-pydantic_ai
 pydantic
 gradio>=5.35.0
 nest_asyncio
@@ -21,3 +19,4 @@ spacy
 sqlalchemy
 psycopg[binary,pool]
 ragchecker>=0.1.9
+python-multipart
