@@ -24,11 +24,11 @@ class Metrics:
         return f"Metrics({self._llm}, {self._vector_store})"
 
     @logfire.instrument
-    def cosine_similarity(self, prompt: str, reference: str):
+    async def cosine_similarity(self, prompt: str, reference: str):
         evaluator = SemanticSimilarityEvaluator(embed_model=self._llm.embedding_model)
-        prompt_output = self._llm.inference(prompt=prompt)
-        result = evaluator.evaluate(
-            query=prompt, response=prompt_output, reference=reference
+        prompt_output = await self._llm.inference(prompt=prompt)
+        result = await evaluator.aevaluate(
+            response=prompt_output, reference=prompt_output
         )
 
         with logfire.span("Cosine Similarity"):
@@ -45,10 +45,10 @@ class Metrics:
         return result
 
     @logfire.instrument
-    def correctness(self, prompt: str, reference: str):
+    async def correctness(self, prompt: str, reference: str):
         evaluator = CorrectnessEvaluator(llm=self._llm.agent)
-        prompt_output = self._llm.inference(prompt=prompt)
-        result = evaluator.evaluate(
+        prompt_output = await self._llm.inference(prompt=prompt)
+        result = await evaluator.aevaluate(
             query=prompt,
             response=prompt_output,
             reference=reference,
@@ -66,13 +66,10 @@ class Metrics:
         return result
 
     @logfire.instrument
-    def faithfulness(self, prompt: str):
+    async def faithfulness(self, prompt: str):
         evaluator = FaithfulnessEvaluator(llm=self._llm.agent)
-        response_vector = self._vector_store.query(prompt)
-        response = self._vector_store.llm_query(prompt)
-        result = evaluator.evaluate(
-            response=response, contexts=[node.text for node in response_vector.nodes]
-        )
+        response_vector = self._vector_store.vector_query_engine().query(prompt)
+        result = await evaluator.aevaluate_response(response=response_vector)
         with logfire.span("Faithfulness"):
             logfire.info(
                 "result",
@@ -80,7 +77,7 @@ class Metrics:
                 score=result.score,
                 feedback=result.feedback,
                 prompt=prompt,
-                response=response,
+                response=response_vector,
                 source=result.contexts[:1000],
             )
         return result
@@ -88,31 +85,31 @@ class Metrics:
     @logfire.instrument
     def ragchecker(self, prompt: str, ground_truth: str):
         evaluator = RAGChecker(
-            openai_api_key="lm-studio",
+            openai_api_key=self._llm.api_key,
             extractor_api_base=self._llm.llm_base_url,
             checker_api_base=self._llm.llm_base_url,
             extractor_name=f"openai/{self._llm.model_name}",
             checker_name=f"openai/{self._llm.model_name}",
         )
-        nodes = self._vector_store.query(prompt)
-        query_response = self._vector_store.llm_query(prompt)
-
-        wrapped = type("Response", (), {})()
-        wrapped.response = query_response
-        wrapped.source_nodes = [NodeWrapper(n) for n in nodes.nodes]
+        # nodes = self._vector_store.query(prompt)
+        query_response = self._vector_store.vector_query_engine().query(prompt)
+        #
+        # wrapped = type("Response", (), {})()
+        # wrapped.response = query_response
+        # wrapped.source_nodes = [NodeWrapper(n) for n in nodes.nodes]
 
         result = response_to_rag_results(
             query=prompt,
             gt_answer=ground_truth,
-            response_object=wrapped,
+            response_object=query_response,
         )
         rag_results = RAGResults.from_dict({"results": [result]})
 
-        metrics = evaluator.evaluate(
+        evaluator.evaluate(
             rag_results,
             all_metrics,
         )
-        return metrics
+        return rag_results
 
 
 class NodeWrapper:
